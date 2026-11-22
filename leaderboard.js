@@ -5,9 +5,11 @@
   const status = document.querySelector('#lb-status');
   const scope = document.querySelector('#lb-scope');
   const rows = document.querySelector('#lb-rows');
-  const local = location.protocol === 'file:' || location.hostname === 'weiyu168.github.io';
+  const local = location.protocol === 'file:';
   const storageKey = 'carwordtwo-racers-v1';
-  const endpoint = '/api/leaderboard';
+  const endpoint = location.hostname === 'weiyu168.github.io'
+    ? 'https://carwordtwo.pages.dev/api/leaderboard'
+    : '/api/leaderboard';
   const number = new Intl.NumberFormat('zh-TW');
   let round = null;
 
@@ -48,12 +50,15 @@
   }
 
   async function requestBoard(options = {}) {
-    const response = await fetch(endpoint, {
-      signal: AbortSignal.timeout(8000),
-      ...options,
-    });
-    if (!response.ok) throw new Error('Leaderboard unavailable');
-    return response.json();
+    const controller = new AbortController();
+    const timeout = setTimeout(() => controller.abort(), 8000);
+    try {
+      const response = await fetch(endpoint, { ...options, signal: controller.signal });
+      if (!response.ok) throw new Error('Leaderboard unavailable');
+      return await response.json();
+    } finally {
+      clearTimeout(timeout);
+    }
   }
 
   window.openRaceLeaderboard = async score => {
