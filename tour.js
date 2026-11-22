@@ -96,6 +96,7 @@ function roadEdgeY(screenOffset,artWidth,depth,roadWidth){
 
 function drawPassingScenery(scene,center,artWidth,depth,nearZ){
   const layout=roadside[scene.id];
+  const followsRoadEdge=scene.id!=='miami';
   const cameraHeight=1.55;
   const pair=Math.floor(travelMeters/layout.spacing);
   // Both shoulders use persistent world-space positions; new objects enter
@@ -116,16 +117,19 @@ function drawPassingScenery(scene,center,artWidth,depth,nearZ){
       const h=depth*t*(isSign?2.2:layout.height)*scale/cameraHeight;
       const w=h*sprite.naturalWidth/sprite.naturalHeight;
       const x=center+side*artWidth*t*(layout.width+(ordered?.04:.10+.22*variation));
-      const y=scene.id==='nyc' ? roadEdgeY(x-center,artWidth,depth,layout.width)+1 : VPY+depth*t;
+      // Use the same projected ground line as the panorama at the sprite's foot.
+      const y=followsRoadEdge ? roadEdgeY(x-center,artWidth,depth,layout.width)+1 : VPY+depth*t;
       if(x+w<0 || x-w>W || y-h>ROAD_H)continue;
       ctx.globalAlpha=Math.min(1,(285-z)/65);
       ctx.save();
       ctx.translate(x,y);
       // Keep bridge lanterns facing inward, and vary natural silhouettes.
       if(scene.id==='nyc'?side===1:!isSign && n%2===0)ctx.scale(-1,1);
-      if(scene.id==='nyc'){
+      if(followsRoadEdge){
+        const isRock=!isSign && (layout.sprite==='sandstone' || layout.sprite==='granite');
+        const shadowWidth=w*(isRock?.38:.25);
         ctx.fillStyle='rgba(40,35,25,.32)';
-        ctx.beginPath();ctx.ellipse(0,-1,w*.25,Math.max(.65,w*.043),0,0,2*Math.PI);ctx.fill();
+        ctx.beginPath();ctx.ellipse(0,-1,shadowWidth,Math.max(.65,w*.043),0,0,2*Math.PI);ctx.fill();
       }
       const anchor=scene.id==='nyc'?.27:.5;
       ctx.drawImage(sprite,-w*anchor,-h,w,h);
