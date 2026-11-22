@@ -136,7 +136,7 @@ canvas#road{position:absolute;top:0;left:0;z-index:0;display:block;}
 .retry-btn{background:linear-gradient(90deg,#ff1010,#ff5000);color:#fff;border:none;padding:.85rem 2.8rem;font-size:1.3rem;font-family:'Noto Serif TC',serif;font-weight:700;border-radius:4px;cursor:pointer;letter-spacing:.2em;box-shadow:0 0 28px rgba(255,50,0,.5);transition:all .18s;}
 .retry-btn:hover{transform:translateY(-3px);box-shadow:0 0 45px rgba(255,70,0,.75);}
 </style>
-<link rel="stylesheet" href="tour.css?v=mobile">
+<link rel="stylesheet" href="tour.css?v=hall-of-fame">
 </head>
 <body>
 <canvas id="road"></canvas>
@@ -255,10 +255,25 @@ canvas#road{position:absolute;top:0;left:0;z-index:0;display:block;}
   <section class="result-ticket"><div class="ticket-label">公路成績單　／　RACE LOG</div><div class="res-title" id="res-title">RACE OVER!</div>
   <div class="res-box"><div class="res-num" id="res-score">0</div><div class="res-lbl">本次總分</div></div>
   <div class="res-detail" id="res-detail"></div>
-  <div class="leaderboard-wrap">
-    <div class="lb-title">本次遊玩排行 · TOP 5</div>
-    <div id="lb-rows"></div>
-  </div>
+  <section class="leaderboard-wrap" aria-labelledby="lb-title">
+    <header class="lb-heading">
+      <div><p class="lb-kicker" id="lb-scope">HALL OF FAME</p><h2 class="lb-title" id="lb-title">名人排行榜</h2></div>
+      <span class="lb-top">TOP 8</span>
+    </header>
+    <form id="lb-form">
+      <label for="lb-name">車手姓名</label>
+      <div class="lb-entry">
+        <input id="lb-name" name="racer" type="text" maxlength="24" placeholder="輸入姓名或暱稱" autocomplete="off" required aria-describedby="lb-privacy lb-status">
+        <button type="submit" class="lb-submit">登錄成績</button>
+      </div>
+      <p id="lb-privacy">公布車手名稱與最高分，建議使用暱稱。</p>
+    </form>
+    <p id="lb-status" role="status"></p>
+    <table class="lb-table">
+      <thead><tr><th scope="col">名次</th><th scope="col">車手</th><th scope="col">最高分</th></tr></thead>
+      <tbody id="lb-rows"></tbody>
+    </table>
+  </section>
   <button class="retry-btn" onclick="retryGame()">再跑一次　→</button>
   <div style="margin-top:1.2rem;color:rgba(255,255,255,.45);font-size:.78rem;font-family:'Noto Serif TC',serif;letter-spacing:.12em;text-align:center;">林威宇老師 × 南一書局 製作</div></section>
 </div>
@@ -3251,15 +3266,6 @@ function shakeScreen(){
   s.classList.remove('shake');void s.offsetWidth;s.classList.add('shake');
   setTimeout(()=>s.classList.remove('shake'),360);
 }
-// ── LEADERBOARD (session storage) ──
-function getLeaderboard(){
-  try{ return JSON.parse(sessionStorage.getItem('lb')||'[]'); }catch(e){return [];}
-}
-function saveLeaderboard(lb){
-  try{ sessionStorage.setItem('lb', JSON.stringify(lb)); }catch(e){}
-}
-
-
 const fireworksCanvas=document.getElementById('fw-canvas');
 let _fwT=null, _fwR=null;
 function _fwSound(big){
@@ -3444,6 +3450,7 @@ function endGame(){
   document.getElementById('game-screen').classList.add('hidden');
   document.getElementById('boss-overlay').classList.add('hidden');
   document.getElementById('result-screen').classList.remove('hidden');
+  document.getElementById('result-screen').scrollTop=0;
   stopFireworks();
   _fwT=setTimeout(function(){runFireworks(false);},400);
   const t=score>=500?'冠軍車手':score>=200?'精彩完賽':'繼續加油';
@@ -3455,19 +3462,7 @@ function endGame(){
     `答對 <span>${correctCount}</span> 題 ／ 答錯 <span>${wrongCount}</span> 題<br>`+
     `最高連擊 <span>${maxCombo}</span> 次 ／ 行駛時間 <span>${mm}:${ss}</span><br>`+
     `抵達場景：<span>${routeNames[sceneIdx%SCENES.length]}</span>`;
-  // Update leaderboard
-  const lb=getLeaderboard();
-  const isNew=lb.length<5||score>lb[lb.length-1].s;
-  lb.push({s:score,t:mm+':'+ss,c:correctCount});
-  lb.sort((a,b)=>b.s-a.s);
-  if(lb.length>5)lb.length=5;
-  saveLeaderboard(lb);
-  const medals=['01','02','03','04','05'];
-  const rowsEl=document.getElementById('lb-rows');
-  rowsEl.innerHTML=lb.map((r,i)=>{
-    const isMe=r.s===score&&r.t===mm+':'+ss&&r.c===correctCount;
-    return `<div class="lb-row"><span class="lb-rank">${medals[i]}</span><span style="flex:1;padding:0 6px">${r.c}題正確</span><span>${r.t}</span><span class="lb-score-val" style="min-width:52px;text-align:right">${r.s}分${isMe?'<span class="lb-new">NEW</span>':''}</span></div>`;
-  }).join('');
+  openRaceLeaderboard(score);
 }
 
 // ════════════════════════════════════════════════════
@@ -3551,5 +3546,6 @@ document.addEventListener('keydown',e=>{
 });
 </script>
 <script src="tour.js?v=grounded"></script>
+<script src="leaderboard.js?v=1"></script>
 </body>
 </html>

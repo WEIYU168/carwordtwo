@@ -133,6 +133,42 @@ button{touch-action:manipulation}
   #answer-zone .ans-btn:hover{transform:none}
   #boss-overlay{backdrop-filter:none;background:#122d2dc9}
 }
+
+/* Racing results board */
+.result-ticket{width:min(470px,100%);margin-top:0}
+.result-ticket .leaderboard-wrap{padding:0;max-width:none;text-align:left;
+  border:1px solid #274d4b;background:#f8f2e1;overflow:hidden}
+.lb-heading{display:flex;align-items:center;justify-content:space-between;gap:10px;padding:13px 15px;
+  border-bottom:3px solid #af4f34;background:#183d3d;color:#fff4d8}
+.lb-kicker{font:700 12px var(--sans);letter-spacing:.08em;color:#eee0b9}
+.lb-heading .lb-title{margin:2px 0 0;text-align:left;color:inherit;font:900 24px/1.15 var(--serif);letter-spacing:.025em}
+.lb-top{padding:4px 7px;border:1px solid #ead3a2;border-radius:2px;color:#f9e2ac;
+  font:700 14px var(--mono);white-space:nowrap}
+#lb-form{padding:11px 13px 5px;font-size:14px;color:var(--ink)}
+#lb-form label{display:block;margin-bottom:4px;font-weight:700}
+.lb-entry{display:flex;gap:6px}
+#lb-name{min-width:0;flex:1;padding:7px 8px;border:1px solid #919a84;border-radius:3px;
+  background:#fffbef;color:var(--ink);font:16px var(--sans)}
+.lb-submit{min-height:44px;padding:6px 10px;border:0;border-radius:3px;background:#963b2a;
+  color:#fff6df;font:700 14px var(--sans);white-space:nowrap}
+.lb-submit:disabled{opacity:.65;cursor:default}
+#lb-status,#lb-privacy{font-size:12px;line-height:1.5;color:#4e6052}
+#lb-privacy{margin-top:6px}
+#lb-status:not(:empty){margin:0 13px 7px;font-weight:700}
+.lb-table{width:100%;border-collapse:collapse;table-layout:fixed;color:var(--ink);font-size:14px}
+.lb-table th,.lb-table td{padding:5px 11px;border-top:1px solid #d9d4bb;text-align:left;overflow-wrap:anywhere}
+.lb-table th{background:#e8e3ce;font-size:12px}
+.lb-table th:first-child{width:56px}
+.lb-table th:last-child{width:76px}
+.lb-table th:last-child,.lb-table td:last-child{text-align:right}
+.lb-table td:last-child{font:700 14px var(--mono);white-space:nowrap}
+.lb-table .lb-empty{color:#626d61}
+.lb-position{display:inline-grid;place-items:center;width:28px;height:22px;border-radius:2px;
+  background:#e8e3ce;font:700 13px var(--mono)}
+.lb-table tr:first-child:not(.lb-empty) .lb-position{background:#e5bb63;color:#543617}
+.lb-table tr:nth-child(2):not(.lb-empty) .lb-position{background:#cfdbdb}
+.lb-table tr:nth-child(3):not(.lb-empty) .lb-position{background:#eac3aa;color:#5a3222}
+.lb-highlight{background:#e4ebd6}
 @media(max-height:520px){
   #hud>div{padding:4px 8px}
   #hint-box{top:57px}
