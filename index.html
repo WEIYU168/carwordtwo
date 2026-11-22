@@ -159,7 +159,7 @@ canvas#road{position:absolute;top:0;left:0;z-index:0;display:block;}
     <h1 id="game-title">漢字<em>飛車</em></h1>
     <div class="poster-en">KANJI SPEED RUN</div>
     <p>穿越五站美國風景，在字卡迎面而來時，<br class="wide-br">選出正確的造字法則。</p>
-    <div class="actions"><button class="drive" onclick="startGame()">開始挑戰 <span aria-hidden="true">→</span></button><button class="manual" onclick="document.getElementById('guide').showModal()">遊玩說明</button></div>
+    <div class="actions"><button class="drive" onclick="startGame(this)">開始挑戰 <span aria-hidden="true">→</span></button><button class="manual" onclick="document.getElementById('guide').showModal()">遊玩說明</button></div>
    </div>
   </section>
   <section class="route" aria-labelledby="route-title">
@@ -274,7 +274,7 @@ canvas#road{position:absolute;top:0;left:0;z-index:0;display:block;}
       <tbody id="lb-rows"></tbody>
     </table>
   </section>
-  <button class="retry-btn" onclick="retryGame()">再跑一次　→</button>
+  <button class="retry-btn" onclick="retryGame(this)">再跑一次　→</button>
   <div style="margin-top:1.2rem;color:rgba(255,255,255,.45);font-size:.78rem;font-family:'Noto Serif TC',serif;letter-spacing:.12em;text-align:center;">林威宇老師 × 南一書局 製作</div></section>
 </div>
 
@@ -2743,20 +2743,28 @@ const BOSS_INTERVAL = 5; // answer N correct to trigger boss
 // ════════════════════════════════════════════════════
 // RENDER LOOP
 // ════════════════════════════════════════════════════
+let displayedStop = 0, nextRouteAttempt = 0;
 function renderLoop() {
   frameCount++;
   const pause = bossPaused || !gameRunning;
-  const sc = SCENES[sceneIdx % SCENES.length];
+  const stop = sceneIdx % SCENES.length;
   if (!pause) {
     displaySpeed += (gameSpeed - displaySpeed) * .06;
   }
 
-  loadRoute(sceneIdx);
-  if (routePictures[sc.id].naturalWidth) drawTourRoad(sc, pause);
-  else { updateProps(sc.id, pause); drawRoad(sc, pause); }
+  if (stop !== displayedStop) {
+    const id = SCENES[stop].id;
+    if (routePictures[id]) {
+      displayedStop = stop;
+      updateRouteLabel(stop);
+    } else if (!routeRequests.has(id) && performance.now() >= nextRouteAttempt) {
+      loadRoute(stop).catch(() => { nextRouteAttempt = performance.now() + 3000; });
+    }
+  }
+  ctx.clearRect(0, 0, W, H);
+  drawTourRoad(SCENES[displayedStop], pause);
   if(finishAnim > 0) drawFinishLine();
-  if (cockpitPicture?.naturalWidth) drawTourDashboard();
-  else drawDashboard();
+  drawTourDashboard();
   rafId = requestAnimationFrame(renderLoop);
 }
 
@@ -2774,15 +2782,33 @@ function renderLives(){
 // ════════════════════════════════════════════════════
 // START / RETRY
 // ════════════════════════════════════════════════════
-function startGame(){
-  prepareTour();
-  resetTourMotion();
+let startingRace = false;
+async function startGame(button = document.querySelector('.actions .drive')){
+  if (startingRace || gameRunning) return;
+  startingRace = true;
+  const screen = button.closest('#start-screen, #result-screen');
+  const label = button.firstChild;
+  button.dataset.readyLabel ??= label.textContent;
+  screen.inert = true;
+  label.textContent = '載入紐約街景中…';
   const SoundContext = window.AudioContext || window.webkitAudioContext;
   if (SoundContext) {
     audioCtx ??= new SoundContext();
     audioCtx.resume().catch(()=>{});
   }
   startBgMusic();
+  try {
+    await prepareTour();
+    label.textContent = button.dataset.readyLabel;
+  } catch {
+    stopBgMusic();
+    label.textContent = '街景載入失敗，點此重試';
+    return;
+  } finally {
+    screen.inert = false;
+    startingRace = false;
+  }
+  resetTourMotion();
   document.getElementById('start-screen').classList.add('hidden');
   document.getElementById('result-screen').classList.add('hidden');
   document.getElementById('game-screen').classList.remove('hidden');
@@ -2807,7 +2833,9 @@ function startGame(){
   document.getElementById('streak-el').style.opacity='0';
   document.getElementById('hit-flash').classList.remove('on');
   document.getElementById('boss-overlay').classList.add('hidden');
-  updateRouteLabel();
+  displayedStop = 0;
+  nextRouteAttempt = 0;
+  updateRouteLabel(0);
 
   renderLives();
   repositionUI();
@@ -2829,7 +2857,7 @@ function startGame(){
 
   setTimeout(spawnCard,500);
 }
-function retryGame(){stopFireworks();startGame();}
+function retryGame(button = document.querySelector('.retry-btn')){stopFireworks();startGame(button);}
 
 // ════════════════════════════════════════════════════
 // CARD
@@ -3024,7 +3052,7 @@ function answerCurrentCard(type) {
     const next = cardQueue.find(q => !q.answered);
     if (next) { next.el.style.filter = 'none'; }
     // Scene / boss progress
-    if(sceneSwitchAt-correctCount===2) loadRoute(sceneIdx+1);
+    if(sceneSwitchAt-correctCount===2) loadRoute(sceneIdx+1).catch(() => {});
     if(correctCount>=sceneSwitchAt){
       sceneIdx++;
       if(sceneIdx>0 && sceneIdx%SCENES.length===0){
@@ -3037,7 +3065,6 @@ function answerCurrentCard(type) {
       // More chars per scene as rounds progress
       var perScene = sceneRound >= 2 ? 14 : sceneRound >= 1 ? 10 : 8;
       sceneSwitchAt += perScene; props=[];
-      updateRouteLabel();
     }
     if(correctCount>=nextBossAt){
       nextBossAt+=BOSS_INTERVAL;
@@ -3545,7 +3572,8 @@ document.addEventListener('keydown',e=>{
   if(e.key==='4'||e.key==='f'||e.key==='F')answer('形聲');
 });
 </script>
-<script src="tour.js?v=grounded"></script>
+<script src="tour.js?v=decoded-scenes"></script>
+<script>prepareTour().catch(() => {});</script>
 <script src="leaderboard.js?v=2"></script>
 </body>
 </html>

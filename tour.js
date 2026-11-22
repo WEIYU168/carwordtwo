@@ -1,15 +1,22 @@
 // Artwork is local so the game can also be opened directly from disk.
+const artworkRequests = new Map();
 function loadArtwork(name) {
+  if (artworkRequests.has(name)) return artworkRequests.get(name);
   const image = new Image();
   image.src = 'assets/' + name + '.webp';
-  return image;
+  const ready = image.decode().then(() => image).catch(error => {
+    artworkRequests.delete(name);
+    throw error;
+  });
+  artworkRequests.set(name, ready);
+  return ready;
 }
 const routePictures = {};
+const routeRequests = new Map();
 let cockpitPicture, miniature;
 const routeNames = ['紐約','大峽谷','黃石公園','優勝美地','邁阿密'];
 
-function updateRouteLabel() {
-  const stop = sceneIdx % SCENES.length;
+function updateRouteLabel(stop) {
   document.getElementById('scene-el').textContent = '第 ' + (stop + 1) + ' 站 · ' + routeNames[stop];
 }
 
@@ -23,18 +30,27 @@ const roadsideArt = {};
 
 function loadRoute(index) {
   const id = SCENES[index % SCENES.length].id;
-  if (routePictures[id]) return;
-  routePictures[id] = loadArtwork('drive-'+id);
-  scrollViews[id].images = ['left','right'].map(side => loadArtwork('scroll-'+id+'-'+side));
+  if (routeRequests.has(id)) return routeRequests.get(id);
   const sprite = roadside[id].sprite;
-  roadsideArt[sprite] = loadArtwork('roadside-'+sprite);
+  const ready = Promise.all([
+    loadArtwork('drive-'+id), loadArtwork('scroll-'+id+'-left'),
+    loadArtwork('scroll-'+id+'-right'), loadArtwork('roadside-'+sprite)
+  ]).then(([art, left, right, prop]) => {
+    scrollViews[id].images = [left, right];
+    roadsideArt[sprite] = prop;
+    routePictures[id] = art;
+  }).catch(error => {
+    routeRequests.delete(id);
+    throw error;
+  });
+  routeRequests.set(id, ready);
+  return ready;
 }
 
-function prepareTour() {
-  loadRoute(0);
-  cockpitPicture ??= loadArtwork('cockpit');
-  miniature ??= loadArtwork('coupe');
-  roadsideArt.bend ??= loadArtwork('roadside-bend');
+async function prepareTour() {
+  [cockpitPicture, miniature, roadsideArt.bend] = await Promise.all([
+    loadArtwork('cockpit'), loadArtwork('coupe'), loadArtwork('roadside-bend'), loadRoute(0)
+  ]);
 }
 
 // Width is the projected half-width of the pavement at the dashboard, relative
@@ -155,7 +171,7 @@ const scrollLayout = {
 
 function prepareScrollView(scene, art){
   const view=scrollViews[scene.id];
-  if(view.sky || !view.images.length || !view.images.every(img=>img.naturalWidth)) return view;
+  if(view.sky) return view;
   for(const img of view.images){
     const ribbon=document.createElement('canvas');
     const width=compactControls.matches ? Math.min(720,img.width) : img.width;
@@ -256,10 +272,10 @@ function drawTourRoad(scene, paused) {
   const depth=ROAD_H-VPY;
   const distantScale=1+.23*(1-Math.exp(-travelMeters/620));
   const view=prepareScrollView(scene,art);
-  ctx.drawImage(view.sky || art,center-artWidth*vx*distantScale,VPY-VPY*distantScale,
+  ctx.drawImage(view.sky,center-artWidth*vx*distantScale,VPY-VPY*distantScale,
     artWidth*distantScale,ROAD_H*distantScale);
   const nearZ=4.4;
-  if(view.sky) drawScrollView(scene,view,center,artWidth,depth);
+  drawScrollView(scene,view,center,artWidth,depth);
   drawPassingPavement(scene,art,center,artWidth,depth,nearZ);
   const dashWidth=Math.min(12,artWidth*.008);
   for(let i=0;i<24;i++){
