@@ -74,7 +74,7 @@ function getRoadTile(scene,art){
 function drawPassingPavement(scene,art,center,artWidth,depth,nearZ){
   const tile=getRoadTile(scene,art);
   const halfWidth=artWidth*roadside[scene.id].width;
-  const rowHeight=Math.max(2,Math.ceil(depth/(compactControls.matches ? 52 : 80)));
+  const rowHeight=Math.max(2,Math.ceil(depth/(compactControls.matches ? 22 : 72)));
   // z is distance from the driver. Inverse projection produces slower flow
   // near the horizon and progressively faster flow close to the dashboard.
   ctx.save();
@@ -154,9 +154,12 @@ function prepareScrollView(scene, art){
   if(view.sky || !view.images.length || !view.images.every(img=>img.naturalWidth)) return view;
   for(const img of view.images){
     const ribbon=document.createElement('canvas');
-    ribbon.width=img.width*2; ribbon.height=img.height;
+    const width=compactControls.matches ? Math.min(720,img.width) : img.width;
+    const height=Math.round(img.height*width/img.width);
+    ribbon.width=width*2; ribbon.height=height;
     const brush=ribbon.getContext('2d');
-    brush.drawImage(img,0,0); brush.drawImage(img,img.width,0);
+    brush.drawImage(img,0,0,width,height);
+    brush.drawImage(img,width,0,width,height);
     view.ribbons.push(ribbon);
   }
   // Remove the painted near shops/trees behind their moving counterparts.
@@ -191,7 +194,7 @@ function prepareScrollView(scene, art){
 
 function drawScrollView(scene,view,center,artWidth,depth){
   const layout=scrollLayout[scene.id], edge=artWidth*.5;
-  const stride=Math.max(compactControls.matches ? 4 : 3,Math.ceil(W/(compactControls.matches ? 150 : 280)));
+  const minStride=Math.max(3,Math.ceil(W/(compactControls.matches ? 52 : 240)));
   ctx.save();
   for(const side of [-1,1]){
     const idx=side===-1?0:1, image=view.ribbons[idx];
@@ -200,7 +203,8 @@ function drawScrollView(scene,view,center,artWidth,depth){
     // A logarithmic scroll preserves the aspect of storefronts near the outer
     // edges. Its screen velocity still grows with distance from the horizon.
     const run=layout.length*edge*image.height/(period*ROAD_H*layout.heights[idx])*1.12;
-    for(let u=edge*.038;u<reach;u+=stride){
+    for(let u=edge*.038;u<reach;){
+      const stride = u < edge*.2 ? minStride*2 : minStride;
       const r=(u+stride*.5)/edge;
       const z=layout.distance-run*Math.log(r);
       const metersPerStrip=run*stride/(r*edge);
@@ -214,6 +218,7 @@ function drawScrollView(scene,view,center,artWidth,depth){
       const x=side===-1?center-u-stride:center+u;
       ctx.globalAlpha=Math.min(1,Math.max(0,(r-.038)/.19));
       ctx.drawImage(image,sampleX,0,sampleWidth,image.height,x,foot-height,stride+.3,height+1);
+      u += stride;
     }
   }
   ctx.restore();

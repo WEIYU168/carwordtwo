@@ -136,7 +136,7 @@ canvas#road{position:absolute;top:0;left:0;z-index:0;display:block;}
 .retry-btn{background:linear-gradient(90deg,#ff1010,#ff5000);color:#fff;border:none;padding:.85rem 2.8rem;font-size:1.3rem;font-family:'Noto Serif TC',serif;font-weight:700;border-radius:4px;cursor:pointer;letter-spacing:.2em;box-shadow:0 0 28px rgba(255,50,0,.5);transition:all .18s;}
 .retry-btn:hover{transform:translateY(-3px);box-shadow:0 0 45px rgba(255,70,0,.75);}
 </style>
-<link rel="stylesheet" href="tour.css">
+<link rel="stylesheet" href="tour.css?v=mobile">
 </head>
 <body>
 <canvas id="road"></canvas>
@@ -303,7 +303,7 @@ document.getElementById('intro-video').addEventListener('error',skipVideo);
 // CANVAS
 // ════════════════════════════════════════════════════
 const cvs = document.getElementById('road');
-const ctx = cvs.getContext('2d');
+const ctx = cvs.getContext('2d', {alpha:false});
 let W, H, DASH_H, ROAD_H, VPY, answerTop;
 const compactControls = matchMedia('(pointer: coarse), (max-width: 600px)');
 const answerZone = document.getElementById('answer-zone');
@@ -311,7 +311,7 @@ const answerZone = document.getElementById('answer-zone');
 function resize() {
   W = window.innerWidth;
   H = window.innerHeight;
-  const pixelBudget = compactControls.matches ? 1_100_000 : 2_400_000;
+  const pixelBudget = compactControls.matches ? 450_000 : 2_400_000;
   const ratio = Math.min(window.devicePixelRatio || 1, 2, Math.sqrt(pixelBudget/(W*H)));
   cvs.width = Math.round(W*ratio); cvs.height = Math.round(H*ratio);
   cvs.style.width=W+'px'; cvs.style.height=H+'px';
@@ -3550,6 +3550,6 @@ document.addEventListener('keydown',e=>{
   if(e.key==='4'||e.key==='f'||e.key==='F')answer('形聲');
 });
 </script>
-<script src="tour.js"></script>
+<script src="tour.js?v=mobile"></script>
 </body>
 </html>
